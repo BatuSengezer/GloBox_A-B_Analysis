@@ -18,6 +18,7 @@
 -- --checking view
 --SELECT * FROM view;
 
+-- -- joining all tables to one as a view summing spent for unique ids in activity
 -- --DROP VIEW summed_spent_view;
 -- CREATE OR REPLACE VIEW summed_spent_view AS
 -- WITH sums AS(
