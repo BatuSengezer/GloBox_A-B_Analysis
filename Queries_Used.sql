@@ -18,12 +18,34 @@
 -- --checking view
 --SELECT * FROM view;
 
+-- --DROP VIEW summed_spent_view;
+-- CREATE OR REPLACE VIEW summed_spent_view AS
+-- WITH sums AS(
+-- SELECT  uid,
+--        SUM(ROUND(CAST(spent AS numeric),2)) sum_spent
+-- FROM cleaned_activity
+-- GROUP BY uid
+-- )
+-- SELECT  u.id, 
+--         g.device,
+--         s.sum_spent,
+--         g.group,
+--         g.join_dt,
+--         u.country,
+--         u.gender
+-- FROM cleaned_groups g
+-- JOIN cleaned_users u
+-- ON g.uid = u.id
+-- FULL JOIN  sums s
+-- ON s.uid = u.id;
+
 -- --checking num of rows
 -- SELECT COUNT(*) FROM cleaned_activity;
 -- SELECT COUNT(*) FROM cleaned_groups;
--- SELECT COUNT(*) FROM cleaned_users;
+--SELECT COUNT(*) FROM cleaned_users;
 -- SELECT COUNT(DISTINCT uid) FROM cleaned_activity; -- duplicate uids
--- SELECT COUNT(*) FROM view;
+--SELECT COUNT(*) FROM view;
+--SELECT COUNT(*) FROM summed_spent_view;
 
 -- --checking distinct countries
 -- SELECT DISTINCT country
@@ -51,3 +73,7 @@
 -- FROM view
 -- WHERE join_dt <= '2023-02-01';
      
+--What is the average amount spent per user for the control and treatment groups? 
+SELECT AVG(CASE WHEN "group" = 'A' THEN sum_spent END) control_grp,
+       AVG(CASE WHEN "group" = 'B' THEN sum_spent END) treatment_grp
+FROM summed_spent_view;
