@@ -83,7 +83,7 @@ FROM summed_spent_view;
 
 --What is the 95% confidence interval for the average amount spent per user in the control? (T-Value (two-tailed): +/- 1.960061)
 --CI = X̄ ± t(α/2, n-1) * (s / √n)
-WITH statistical_information AS(
+WITH control_group_stats AS(
 SELECT  SUM(CASE WHEN "group" = 'A' THEN sum_spent END)/
         COUNT(CASE WHEN "group" = 'A' THEN id END) sample_mean,
         STDDEV_SAMP(pg_catalog.NUMERIC(CASE WHEN "group" = 'A' AND sum_spent IS NOT NULL THEN sum_spent END)) AS sample_standard_deviation,
@@ -95,6 +95,6 @@ SELECT  sample_size,
         sample_standard_deviation,
         sample_mean - (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS lower_bound,
         sample_mean + (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS upper_bound
-FROM    statistical_information;
+FROM    control_group_stats;
 
 
