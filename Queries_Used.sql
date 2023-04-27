@@ -1,5 +1,5 @@
--- -- joining all tables to one as a view keeping all activity
--- DROP VIEW view;
+-- --joining all tables to one as a view keeping all activity
+-- --DROP VIEW view;
 -- CREATE OR REPLACE VIEW view AS
 -- SELECT  u.id, 
 --         a.dt purchase_dt, 
@@ -18,7 +18,7 @@
 -- --checking view
 --SELECT * FROM view;
 
--- -- joining all tables to one as a view summing spent for unique ids in activity
+-- --joining all tables to one as a view summing spent for unique ids in activity
 -- --DROP VIEW summed_spent_view;
 -- CREATE OR REPLACE VIEW summed_spent_view AS
 -- WITH sums AS(
@@ -74,7 +74,9 @@
 -- FROM view
 -- WHERE join_dt <= '2023-02-01';
      
---What is the average amount spent per user for the control and treatment groups? 
-SELECT AVG(CASE WHEN "group" = 'A' THEN sum_spent END) control_grp,
-       AVG(CASE WHEN "group" = 'B' THEN sum_spent END) treatment_grp
-FROM summed_spent_view;
+-- --What is the average amount spent per user for the control and treatment groups? 
+-- SELECT  "group",
+--         SUM(CASE WHEN "group" = 'A' THEN sum_spent END)/COUNT(CASE WHEN "group" = 'A' THEN id END) control_grp,
+--         SUM(CASE WHEN "group" = 'B' THEN sum_spent END)/COUNT(CASE WHEN "group" = 'B' THEN id END) treatment_grp
+-- FROM summed_spent_view s
+-- GROUP BY 1;
