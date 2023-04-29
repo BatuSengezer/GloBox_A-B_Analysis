@@ -124,30 +124,27 @@ FROM    treatment_group_stats;
 --The test statistic for a two-sample t-test with unequal variances is calculated as:t = (x̄1 - x̄2) / sqrt((s1^2 / n1) + (s2^2 / n2))
 --where x̄1 and x̄2 are the sample means of groups A and B, s1 and s2 are the sample standard deviations of groups A and B, 
 --and n1 and n2 are the sample sizes of groups A and B.
--- WITH control_group_stats AS(
--- SELECT  SUM(sum_spent) / COUNT(id) control_sample_mean,
---         STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS control_std_dev,
---         COUNT(id) control_sample_size      
--- FROM summed_spent_view
--- WHERE "group" = 'A'
--- ),
--- treatment_group_stats AS(
--- SELECT  SUM(sum_spent) / COUNT(id) treatment_sample_mean,
---         STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS treatment_std_dev,
---         COUNT(id) treatment_sample_size      
--- FROM summed_spent_view
--- WHERE "group" = 'B'
--- )
--- SELECT
-WITH group_stats AS (
-    SELECT 
-        CASE WHEN "group" = 'A' THEN 'Control' 
-        WHEN "group" = 'B' THEN 'Treatment' END AS group_type,
-        COUNT(id) AS sample_size,
-        AVG(COALESCE(sum_spent, 0)) AS sample_mean,
-        STDDEV_SAMP(COALESCE(sum_spent, 0)) AS sample_std_dev
-    FROM summed_spent_view
-    GROUP BY 1
+WITH control_group_stats AS(
+SELECT  SUM(sum_spent) / COUNT(id) control_sample_mean,
+        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS control_std_dev,
+        COUNT(id) control_sample_size      
+FROM summed_spent_view
+WHERE "group" = 'A'
+),
+treatment_group_stats AS(
+SELECT  SUM(sum_spent) / COUNT(id) treatment_sample_mean,
+        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS treatment_std_dev,
+        COUNT(id) treatment_sample_size      
+FROM summed_spent_view
+WHERE "group" = 'B'
 )
-SELECT *
-FROM group_stats
+SELECT *,
+        (control_sample_mean - treatment_sample_mean) / 
+        SQRT((control_std_dev^2 / control_sample_size) + (treatment_std_dev^2 / treatment_sample_size)) AS test_statistic,
+ ((control_std_dev^2 / control_sample_size) + (treatment_std_dev^2 / treatment_sample_size))^2 /
+        (((control_std_dev^2 / control_sample_size)^2) / (control_sample_size - 1) + 
+        ((treatment_std_dev^2 / treatment_sample_size)^2) / (treatment_sample_size - 1)) AS degrees_of_freedom
+FROM control_group_stats
+CROSS JOIN treatment_group_stats;
+
+
