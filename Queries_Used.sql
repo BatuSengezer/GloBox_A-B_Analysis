@@ -121,9 +121,7 @@ FROM    treatment_group_stats;
 --Null Hypothesis(H0): There is no difference in the average amount spent per user between the two groups.
 --Alternative Hypothesis(HA): There is a difference in the average amount spent per user between the two groups.
 
---The test statistic for a two-sample t-test with unequal variances is calculated as:t = (x̄1 - x̄2) / sqrt((s1^2 / n1) + (s2^2 / n2))
---where x̄1 and x̄2 are the sample means of groups A and B, s1 and s2 are the sample standard deviations of groups A and B, 
---and n1 and n2 are the sample sizes of groups A and B.
+--Stats to be exported to excel
 WITH control_group_stats AS(
 SELECT  SUM(sum_spent) / COUNT(id) control_sample_mean,
         STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS control_std_dev,
@@ -138,13 +136,6 @@ SELECT  SUM(sum_spent) / COUNT(id) treatment_sample_mean,
 FROM summed_spent_view
 WHERE "group" = 'B'
 )
-SELECT *,
-        (control_sample_mean - treatment_sample_mean) / 
-        SQRT((control_std_dev^2 / control_sample_size) + (treatment_std_dev^2 / treatment_sample_size)) AS test_statistic,
- ((control_std_dev^2 / control_sample_size) + (treatment_std_dev^2 / treatment_sample_size))^2 /
-        (((control_std_dev^2 / control_sample_size)^2) / (control_sample_size - 1) + 
-        ((treatment_std_dev^2 / treatment_sample_size)^2) / (treatment_sample_size - 1)) AS degrees_of_freedom
+SELECT *
 FROM control_group_stats
 CROSS JOIN treatment_group_stats;
-
-
