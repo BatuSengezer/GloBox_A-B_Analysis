@@ -120,8 +120,6 @@ FROM    treatment_group_stats;
 
 --Null Hypothesis(H0): There is no difference in the average amount spent per user between the two groups.
 --Alternative Hypothesis(HA): There is a difference in the average amount spent per user between the two groups.
-
---Stats to be exported to excel
 WITH control_group_stats AS(
 SELECT  SUM(sum_spent) / COUNT(id) control_sample_mean,
         STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS control_std_dev,
@@ -136,6 +134,37 @@ SELECT  SUM(sum_spent) / COUNT(id) treatment_sample_mean,
 FROM summed_spent_view
 WHERE "group" = 'B'
 )
-SELECT *
+SELECT  --*,
+        0.05 AS significance_level,
+        SQRT((control_std_dev^2/control_sample_size) + (treatment_std_dev^2/treatment_sample_size)) AS standard_error_of_diff,
+        ABS((control_sample_mean - treatment_sample_mean)/SQRT((control_std_dev^2/control_sample_size) + (treatment_std_dev^2/treatment_sample_size))) AS t_statistic,
+        (control_sample_size-1)+(treatment_sample_size-1) AS degrees_of_freedom,
+        0.944 AS p_value
+FROM control_group_stats
+CROSS JOIN treatment_group_stats;
+--It can be concluded that p value is higher then significance level thus fail to rejectnull hypothesis. 
+--There is not enough evidence to suggest a significant difference in the mean amount spent per user between the control and treatment groups
+
+
+--What is the 95% confidence interval for the difference in the average amount spent per user 
+--between the treatment and the control (treatment-control)?
+WITH control_group_stats AS(
+SELECT  SUM(sum_spent) / COUNT(id) control_sample_mean,
+        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS control_std_dev,
+        COUNT(id) control_sample_size      
+FROM summed_spent_view
+WHERE "group" = 'A'
+),
+treatment_group_stats AS(
+SELECT  SUM(sum_spent) / COUNT(id) treatment_sample_mean,
+        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS treatment_std_dev,
+        COUNT(id) treatment_sample_size      
+FROM summed_spent_view
+WHERE "group" = 'B'
+)
+SELECT 
+    treatment_sample_mean - control_sample_mean AS mean_diff,
+    treatment_sample_mean - control_sample_mean - (treatment_std_dev^2/treatment_sample_size + control_std_dev^2/control_sample_size)^0.5 * 1.96 AS lower_bound,
+    treatment_sample_mean - control_sample_mean + (treatment_std_dev^2/treatment_sample_size + control_std_dev^2/control_sample_size)^0.5 * 1.96 AS upper_bound
 FROM control_group_stats
 CROSS JOIN treatment_group_stats;
