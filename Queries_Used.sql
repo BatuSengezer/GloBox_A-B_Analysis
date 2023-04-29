@@ -87,35 +87,37 @@ FROM summed_spent_view;
 --What is the 95% confidence interval for the average amount spent per user in the control? (T-Value (two-tailed): +/- 1.960061)
 --CI = X̄ ± t(α/2, n-1) * (s / √n)
 WITH control_group_stats AS(
-SELECT  SUM(sum_spent) / COUNT(id) sample_mean,
-        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS sample_standard_deviation,
-        COUNT(id) sample_size      
+SELECT  SUM(sum_spent) / COUNT(id) control_sample_mean,
+        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS control_standard_deviation,
+        COUNT(id) control_sample_size      
 FROM summed_spent_view
 WHERE "group" = 'A'
 )
-SELECT  sample_size,
-        sample_mean,
-        sample_standard_deviation,
-        sample_mean - (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS lower_bound,
-        sample_mean + (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS upper_bound
+SELECT  control_sample_size,
+        control_sample_mean,
+        control_standard_deviation,
+        control_sample_mean - (1.960061 * (control_standard_deviation / SQRT(control_sample_size))) AS lower_bound,
+        control_sample_mean + (1.960061 * (control_standard_deviation / SQRT(control_sample_size))) AS upper_bound
 FROM    control_group_stats;
 
 --What is the 95% confidence interval for the average amount spent per user in the treatment? This question is required.*
 WITH treatment_group_stats AS(
-SELECT  SUM(sum_spent) / COUNT(id) sample_mean,
-        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS sample_standard_deviation,
-        COUNT(id) sample_size      
+SELECT  SUM(sum_spent) / COUNT(id) treatment_sample_mean,
+        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS treatment_standard_deviation,
+        COUNT(id) treatment_sample_size      
 FROM summed_spent_view
 WHERE "group" = 'B'
 )
-SELECT  sample_size,
-        sample_mean,
-        sample_standard_deviation,
-        sample_mean - (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS lower_bound,
-        sample_mean + (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS upper_bound
+SELECT  treatment_sample_size,
+        treatment_sample_mean,
+        treatment_standard_deviation,
+        treatment_sample_mean - (1.960061 * (treatment_standard_deviation / SQRT(treatment_sample_size))) AS lower_bound,
+        treatment_sample_mean + (1.960061 * (treatment_standard_deviation / SQRT(treatment_sample_size))) AS upper_bound
 FROM    treatment_group_stats;
 
+--Conduct a hypothesis test to see whether there is a difference in the average amount spent per user between the two groups. 
+--What are the resulting p-value and conclusion? Use the t distribution and a 5% significance level. Assume unequal variance.
 
-
-
+--Null Hypothesis(H0): There is no difference in the average amount spent per user between the two groups.
+--Alternative Hypothesis(HA): There is a difference in the average amount spent per user between the two groups.
 
