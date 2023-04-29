@@ -18,7 +18,7 @@ ON a.uid = u.id;
 --checking view
 SELECT * FROM view;
 
---joining all tables to one as a view summing spent for unique ids in activity
+--joining all tables to one as a view summing spent and replacing null spent values with 0's for unique ids in activity
 --DROP VIEW summed_spent_view;
 CREATE OR REPLACE VIEW summed_spent_view AS
 WITH sums AS(
@@ -29,7 +29,7 @@ GROUP BY uid
 )
 SELECT  u.id, 
         g.device,
-        s.sum_spent,
+        COALESCE(s.sum_spent,0) sum_spent,
         g.group,
         g.join_dt,
         u.country,
@@ -39,6 +39,9 @@ JOIN cleaned_users u
 ON g.uid = u.id
 FULL JOIN  sums s
 ON s.uid = u.id;
+
+--checking summed_spent_view
+SELECT * FROM summed_spent_view;
 
 --checking num of rows
 SELECT COUNT(*) FROM cleaned_activity;
@@ -84,11 +87,11 @@ FROM summed_spent_view;
 --What is the 95% confidence interval for the average amount spent per user in the control? (T-Value (two-tailed): +/- 1.960061)
 --CI = X̄ ± t(α/2, n-1) * (s / √n)
 WITH control_group_stats AS(
-SELECT  SUM(CASE WHEN "group" = 'A' THEN sum_spent END)/
-        COUNT(CASE WHEN "group" = 'A' THEN id END) sample_mean,
-        STDDEV_SAMP(pg_catalog.NUMERIC(CASE WHEN "group" = 'A' AND sum_spent IS NOT NULL THEN sum_spent END)) AS sample_standard_deviation,
-        COUNT(CASE WHEN "group" = 'A' THEN id END) sample_size      
+SELECT  SUM(sum_spent) / COUNT(id) sample_mean,
+        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS sample_standard_deviation,
+        COUNT(id) sample_size      
 FROM summed_spent_view
+WHERE "group" = 'A'
 )
 SELECT  sample_size,
         sample_mean,
@@ -96,5 +99,23 @@ SELECT  sample_size,
         sample_mean - (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS lower_bound,
         sample_mean + (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS upper_bound
 FROM    control_group_stats;
+
+--What is the 95% confidence interval for the average amount spent per user in the treatment? This question is required.*
+WITH treatment_group_stats AS(
+SELECT  SUM(sum_spent) / COUNT(id) sample_mean,
+        STDDEV_SAMP(pg_catalog.NUMERIC(sum_spent)) AS sample_standard_deviation,
+        COUNT(id) sample_size      
+FROM summed_spent_view
+WHERE "group" = 'B'
+)
+SELECT  sample_size,
+        sample_mean,
+        sample_standard_deviation,
+        sample_mean - (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS lower_bound,
+        sample_mean + (1.960061 * (sample_standard_deviation / SQRT(sample_size))) AS upper_bound
+FROM    treatment_group_stats;
+
+
+
 
 
