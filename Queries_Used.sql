@@ -134,8 +134,7 @@ SELECT  SUM(sum_spent) / COUNT(id) treatment_sample_mean,
 FROM summed_spent_view
 WHERE "group" = 'B'
 )
-SELECT  --*,
-        0.05 AS significance_level,
+SELECT  0.05 AS significance_level,
         SQRT((control_std_dev^2/control_sample_size) + (treatment_std_dev^2/treatment_sample_size)) AS standard_error_of_diff,
         ABS((control_sample_mean - treatment_sample_mean)/SQRT((control_std_dev^2/control_sample_size) + (treatment_std_dev^2/treatment_sample_size))) AS t_statistic,
         (control_sample_size-1)+(treatment_sample_size-1) AS degrees_of_freedom,
@@ -143,7 +142,7 @@ SELECT  --*,
 FROM control_group_stats
 CROSS JOIN treatment_group_stats;
 --p value calculated with excel.
---It can be concluded that p value is higher then significance level thus fail to rejectnull hypothesis. 
+--It can be concluded that p value is higher then significance level thus fail to reject null hypothesis. 
 --There is not enough evidence to suggest a significant difference in the mean amount spent per user between the control and treatment groups
 
 
@@ -222,3 +221,39 @@ FROM treatment_group_stats;
 --Conduct a hypothesis test to see whether there is a difference in the conversion rate between the two groups. 
 --What are the resulting p-value and conclusion?
 --Use the normal distribution and a 5% significance level. Use the pooled proportion for the standard error
+
+--Null Hypothesis(H0): There is no difference in the conversion rate between the two groups.
+--Alternative Hypothesis(HA): There is a difference in the conversion rate between the two groups.
+WITH control_group_stats AS(
+SELECT  COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT control_conv_cnt,
+        COUNT(id)::FLOAT control_sample_size,
+        COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id) AS control_conversion_rate
+FROM summed_spent_view
+WHERE "group" = 'A'
+),
+treatment_group_stats AS(
+SELECT  COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT treatment_conv_cnt,
+        COUNT(id)::FLOAT treatment_sample_size,
+        COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id) AS treatment_conversion_rate
+FROM summed_spent_view
+WHERE "group" = 'B'
+),
+hypothesis_stats AS(
+SELECT  control_sample_size,
+        treatment_sample_size,
+        control_conversion_rate,
+        treatment_conversion_rate,
+        (control_conv_cnt + treatment_conv_cnt) / (control_sample_size+ treatment_sample_size) AS pooled_proportion
+FROM    control_group_stats
+CROSS JOIN treatment_group_stats
+)
+SELECT  pooled_proportion,
+        SQRT(pooled_proportion * (1 - pooled_proportion) * (1/control_sample_size + 1/treatment_sample_size)) AS standard_error,
+        (treatment_conversion_rate - control_conversion_rate) / 
+        SQRT(pooled_proportion * (1 - pooled_proportion) * (1/control_sample_size + 1/treatment_sample_size)) AS test_statistic,
+        0.000111412 AS p_value
+FROM hypothesis_stats;
+
+--p value calculated with excel.
+--It can be concluded that p value is lower then significance level thus reject null hypothesis. 
+--There is statically significant difference in the conversion rate between the control and treatment groups
