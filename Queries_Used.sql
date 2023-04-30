@@ -142,6 +142,7 @@ SELECT  --*,
         0.944 AS p_value
 FROM control_group_stats
 CROSS JOIN treatment_group_stats;
+--p value calculated with excel.
 --It can be concluded that p value is higher then significance level thus fail to rejectnull hypothesis. 
 --There is not enough evidence to suggest a significant difference in the mean amount spent per user between the control and treatment groups
 
@@ -168,3 +169,24 @@ SELECT
     treatment_sample_mean - control_sample_mean + (treatment_std_dev^2/treatment_sample_size + control_std_dev^2/control_sample_size)^0.5 * 1.96 AS upper_bound
 FROM control_group_stats
 CROSS JOIN treatment_group_stats;
+
+--What is the user conversion rate for the control and treatment groups?
+WITH control_group_stats AS(
+SELECT  COUNT(CASE WHEN sum_spent > 0 THEN id END) control_conv_cnt,
+        COUNT(id) control_sample_size      
+FROM summed_spent_view
+WHERE "group" = 'A'
+),
+treatment_group_stats AS(
+SELECT  COUNT(CASE WHEN sum_spent > 0 THEN id END) AS treatment_conv_cnt,
+        COUNT(id) treatment_sample_size      
+FROM summed_spent_view
+WHERE "group" = 'B'
+)
+SELECT  *,
+        100 * control_conv_cnt::FLOAT / control_sample_size AS control_conversion_rate,
+        100 * treatment_conv_cnt::FLOAT / treatment_sample_size AS treatment_conversion_rate
+FROM control_group_stats
+CROSS JOIN treatment_group_stats;
+
+--What is the 95% confidence interval for the conversion rate of users in the control? Using normal distribution
