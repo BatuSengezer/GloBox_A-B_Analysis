@@ -250,10 +250,43 @@ CROSS JOIN treatment_group_stats
 SELECT  pooled_proportion,
         SQRT(pooled_proportion * (1 - pooled_proportion) * (1/control_sample_size + 1/treatment_sample_size)) AS standard_error,
         (treatment_conversion_rate - control_conversion_rate) / 
-        SQRT(pooled_proportion * (1 - pooled_proportion) * (1/control_sample_size + 1/treatment_sample_size)) AS test_statistic,
+        SQRT(pooled_proportion * (1 - pooled_proportion) * (1/control_sample_size + 1/treatment_sample_size)) AS z_value,
         0.000111412 AS p_value
 FROM hypothesis_stats;
-
 --p value calculated with excel.
 --It can be concluded that p value is lower then significance level thus reject null hypothesis. 
 --There is statically significant difference in the conversion rate between the control and treatment groups
+
+
+--What is the 95% confidence interval for the difference in the conversion rate between the treatment and control (treatment-control)?
+--z_score is 1.960061
+WITH control_group_stats AS(
+SELECT  COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT control_conv_cnt,
+        COUNT(id)::FLOAT control_sample_size,
+        COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id) AS control_conversion_rate
+FROM summed_spent_view
+WHERE "group" = 'A'
+),
+treatment_group_stats AS(
+SELECT  COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT treatment_conv_cnt,
+        COUNT(id)::FLOAT treatment_sample_size,
+        COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id) AS treatment_conversion_rate
+FROM summed_spent_view
+WHERE "group" = 'B'
+),
+hypothesis_stats AS(
+SELECT  control_sample_size,
+        treatment_sample_size,
+        control_conversion_rate,
+        treatment_conversion_rate,
+        SQRT((control_conversion_rate * (1 - control_conversion_rate) / control_sample_size) 
+        + (treatment_conversion_rate * (1 - treatment_conversion_rate) / treatment_sample_size)) AS se_diff
+FROM control_group_stats
+CROSS JOIN treatment_group_stats
+)
+SELECT  treatment_conversion_rate - control_conversion_rate AS conv_rate_diff,
+        (treatment_conversion_rate - control_conversion_rate) - (1.96 * se_diff) AS lower_bound,
+        (treatment_conversion_rate - control_conversion_rate) + (1.96* se_diff) AS upper_bound
+FROM hypothesis_stats;
+
+
