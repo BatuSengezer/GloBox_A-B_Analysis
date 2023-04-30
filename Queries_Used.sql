@@ -184,9 +184,41 @@ FROM summed_spent_view
 WHERE "group" = 'B'
 )
 SELECT  *,
-        100 * control_conv_cnt::FLOAT / control_sample_size AS control_conversion_rate,
-        100 * treatment_conv_cnt::FLOAT / treatment_sample_size AS treatment_conversion_rate
+        100 * control_conv_cnt::FLOAT / control_sample_size AS control_conversion_percent,
+        100 * treatment_conv_cnt::FLOAT / treatment_sample_size AS treatment_conversion_percent
 FROM control_group_stats
 CROSS JOIN treatment_group_stats;
 
 --What is the 95% confidence interval for the conversion rate of users in the control? Using normal distribution
+--z_score is 1.960061
+WITH control_group_stats AS(
+SELECT  COUNT(CASE WHEN sum_spent > 0 THEN id END) control_conv_cnt,
+        COUNT(id) control_sample_size,
+        COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id) AS control_conversion_rate,
+        SQRT(COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id) * (1 - COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id)) / COUNT(id)) AS standard_error,
+        1.960061 AS z_score
+FROM summed_spent_view
+WHERE "group" = 'A'
+)
+SELECT  control_conversion_rate - z_score * standard_error AS lower_bound,
+        control_conversion_rate + z_score * standard_error AS upper_bound
+FROM control_group_stats;
+
+--What is the 95% confidence interval for the conversion rate of users in the treatment?
+--z_score is 1.960061
+WITH treatment_group_stats AS(
+SELECT  COUNT(CASE WHEN sum_spent > 0 THEN id END) treatment_conv_cnt,
+        COUNT(id) treatment_sample_size,
+        COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id) AS treatment_conversion_rate,
+        SQRT(COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id) * (1 - COUNT(CASE WHEN sum_spent > 0 THEN id END)::FLOAT / COUNT(id)) / COUNT(id)) AS standard_error,
+        1.960061 AS z_score
+FROM summed_spent_view
+WHERE "group" = 'B'
+)
+SELECT  treatment_conversion_rate - z_score * standard_error AS lower_bound,
+        treatment_conversion_rate + z_score * standard_error AS upper_bound
+FROM treatment_group_stats;
+
+--Conduct a hypothesis test to see whether there is a difference in the conversion rate between the two groups. 
+--What are the resulting p-value and conclusion?
+--Use the normal distribution and a 5% significance level. Use the pooled proportion for the standard error
