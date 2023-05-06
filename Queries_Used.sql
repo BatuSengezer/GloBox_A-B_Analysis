@@ -314,10 +314,3 @@ SELECT  treatment_conversion_rate - control_conversion_rate AS conv_rate_diff,
 FROM hypothesis_stats;
 --CI= (0.003, 0.011)
 
-
---
-SELECT * FROM summed_spent_view;
---
-SELECT "group", SUM(sum_spent)
-FROM summed_spent_view
-GROUP BY 1;
