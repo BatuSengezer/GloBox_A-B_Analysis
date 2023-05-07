@@ -308,9 +308,9 @@ SELECT  control_sample_size,
 FROM control_group_stats
 CROSS JOIN treatment_group_stats
 )
-SELECT  treatment_conversion_rate - control_conversion_rate AS conv_rate_diff,
+SELECT  se_diff,
+        treatment_conversion_rate - control_conversion_rate AS conv_rate_diff,
         ROUND(CAST((treatment_conversion_rate - control_conversion_rate) - (1.96 * se_diff) AS numeric), 3) AS lower_bound,
         ROUND(CAST((treatment_conversion_rate - control_conversion_rate) + (1.96* se_diff) AS numeric), 3) AS upper_bound
 FROM hypothesis_stats;
 --CI= (0.003, 0.011)
-
